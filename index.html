@@ -1,199 +1,74 @@
 <!DOCTYPE html>
-<html><head>
-<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<html>
+
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=windows-1252">
 	<title>Checkerboard</title>
-
-	<script type="text/javascript" src="gl-matrix.js"></script>
-	<script type="text/javascript" src="webgl-utils.js"></script>
-	
-	<script type="text/javascript" src="Point.js"></script>
-	<script type="text/javascript" src="Color.js"></script>
-	<script type="text/javascript" src="DrawUtils.js"></script>
-		
-	<script id="shader-fs" type="x-shader/x-fragment">
-	    precision mediump float;
-	    
-	    varying vec4 vColor;
-	
-	    void main(void) {
-	        gl_FragColor = vColor;
-	    }
-	</script>
-
-	<script id="shader-vs" type="x-shader/x-vertex">
-	    attribute vec3 aVertexPosition;
-	    attribute vec4 aVertexColor;
-	
-	    uniform mat4 uPMatrix;
-	    
-	    varying vec4 vColor;
-	
-	    void main(void) {
-	        gl_Position = uPMatrix * vec4(aVertexPosition, 1.0);
-	        vColor = aVertexColor;
-	    }
-	</script>
-	
-	<script type="text/javascript">
-		var gl;
-		var shaderProgram;
-		var pMatrix = mat4.create();
-		
-		function initGL(canvas) {
-			gl = WebGLUtils.setupWebGL(canvas);
-			
-			if (!gl) {
-				return;
-			}
-			
-            gl.clearColor(0.5, 0.5, 0.0, 1.0);
-        	
-        	gl.viewportWidth = canvas.width;
-        	gl.viewportHeight = canvas.height;
-        	
-        	var out = mat4.ortho({}, gl.viewportWidth, 0, gl.viewportHeight, -1, 1, pMatrix);
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	<style>
+		.black {
+			background-color: red;
 		}
-		
-		function getShader(gl, id) {
-	        var shaderScript = document.getElementById(id);
-	        
-	        if (!shaderScript) {
-	            return null;
-	        }
-	
-	        var str = "";
-	        var k = shaderScript.firstChild;
-	        
-	        while (k) {
-	            if (k.nodeType == 3) {
-	                str += k.textContent;
-	            }
-	            
-	            k = k.nextSibling;
-	        }
-	
-	        var shader;
-	        
-	        if (shaderScript.type == "x-shader/x-fragment") {
-	            shader = gl.createShader(gl.FRAGMENT_SHADER);
-	        } else if (shaderScript.type == "x-shader/x-vertex") {
-	            shader = gl.createShader(gl.VERTEX_SHADER);
-	        } else {
-	            return null;
-	        }
-	
-	        gl.shaderSource(shader, str);
-	        gl.compileShader(shader);
-	
-	        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-	            alert(gl.getShaderInfoLog(shader));
-	            return null;
-	        }
-	
-	        return shader;
-	    }
 
-	    function initShaders() {
-	        var fragmentShader = getShader(gl, "shader-fs");
-	        var vertexShader = getShader(gl, "shader-vs");
-	
-	        shaderProgram = gl.createProgram();
-	        gl.attachShader(shaderProgram, vertexShader);
-	        gl.attachShader(shaderProgram, fragmentShader);
-	        gl.linkProgram(shaderProgram);
-	
-	        if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-	            alert("Could not initialise shaders");
-	        }
-	
-	        gl.useProgram(shaderProgram);
-	
-	        shaderProgram.vertexPositionLoc = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-	        gl.enableVertexAttribArray(shaderProgram.vertexPositionLoc);
-	        
-	        shaderProgram.vertexColorLoc = gl.getAttribLocation(shaderProgram, "aVertexColor");
-        	gl.enableVertexAttribArray(shaderProgram.vertexColorloc);
-	
-	        shaderProgram.pMatrixLoc = gl.getUniformLocation(shaderProgram, "uPMatrix");
-	    }
+		.white {
+			background-color: green;
+		}
+	</style>
 
-		function checkerboard(size, startX, startY) {
-			for (i = 0; i < 8; i++) {
-				for (j = 0; j < 8; j++) {
-					var x1 = startX + i * size;
-					var y1 = startY + j * size;
-					var x2 = x1 + size;
-					var y2 = y1 + size;
-					var color = (i + j) % 2 ? new Color(1.0, 0.0, 0.0) : new Color(0.0, 1.0, 0.0);
-					
-					DrawUtils.drawRect(new Point(x1, y1), new Point(x2, y2), color, gl, shaderProgram.vertexPositionLoc, shaderProgram.vertexColorLoc); 
-					
-										
-				}
-			}
-		}
-		
-		
-		
-		
-		function checkerboard2(size, startX, startY) {
-			for (i = 0; i < 8; i++) {
-				for (j = 0; j < 8; j++) {
-					var x1 = startX + i * size;
-					var y1 = startY + j * size;
-					var x2 = x1 + size;
-					var y2 = y1 + size;
-					var color = (i + j) % 2 ? new Color(0.0, 1.0, 0.0) : new Color(1.0, 0.0, 0.0);
-					
-					DrawUtils.drawRect(new Point(x1, y1), new Point(x2, y2), color, gl, shaderProgram.vertexPositionLoc, shaderProgram.vertexColorLoc); 
-				
-				}
-			}
-		}
-		
-		
+	<body>
+		<table id="gameBoard">
+			<tbody></tbody>
+		</table>
+	</body>
+
+
+	<script>
+		$(function () {
+			var row = new Array(9).join('<td></td>');
+			var body = new Array(9).join('<tr>' + row + '</tr>');
+			var $tbody = $('#gameBoard tbody').html(body);
+
+			$tbody.find('tr:odd').addClass('odd');
+			$tbody.find('tr:even').addClass('even');
+
+			$tbody.find('tr:odd td:odd').addClass('white');
+			$tbody.find('tr:odd td:even').addClass('black');
+			$tbody.find('tr:even td:odd').addClass('black');
+			$tbody.find('tr:even td:even').addClass('white');
+
+
+			$('#gameBoard').css({
+				'border-collapse': 'collapse',
+				'border': 'solid 1px black'
+			});
+
+			$('td').css({
+				'width': '80px',
+				'height': '80px'
+			});
+
+		});
+
+
 		function render() {
-			gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.uniformMatrix4fv(shaderProgram.pMatrixLoc, false, pMatrix);
-
-			checkerboard(60, 10, 10);
-			
+			$(".black").css("background-color", "green");
+			$(".white").css("background-color", "red");			
 			setTimeout(render2, 500);
-			
 		}
-		
-		
-		function render2() {
-			gl.clear(gl.COLOR_BUFFER_BIT);
-			gl.uniformMatrix4fv(shaderProgram.pMatrixLoc, false, pMatrix);
-			
-			checkerboard2(60, 10, 10);
 
+
+		function render2() {	
+			$(".black").css("background-color", "red");
+			$(".white").css("background-color", "green");		
 			setTimeout(render, 500);
-			
 		}
-		
-		
-		
-		function webGLStart() {
-	        var canvas = document.getElementById("webgl_canvas");
-	        initGL(canvas);
-	        initShaders();
 
-			render();
-	    }
-		
-		
-		
-	
-	
+		render();
+
 	</script>
 
-</head>
-
-<body onload="webGLStart()">
-	  
-	<canvas id="webgl_canvas" width="500" height="500"></canvas>
 
 
-</body></html>
+	</body>
+
+</html>
