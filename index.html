@@ -51,7 +51,7 @@
         	gl.viewportWidth = canvas.width;
         	gl.viewportHeight = canvas.height;
         	
-        	mat4.ortho(0, gl.viewportWidth, 0, gl.viewportHeight, -1, 1, pMatrix);
+        	mat4.ortho({}, gl.viewportWidth, 0, gl.viewportHeight, -1, 1, pMatrix);
 		}
 		
 		function getShader(gl, id) {
